@@ -27,6 +27,12 @@ class Enemy:
 	var hit: float = 0.0
 	var alive: bool = true
 	var pos: Vector2 = Vector2.ZERO
+	var armor: float = 0.0
+	var flying: bool = false
+	var regen: float = 0.0
+	var last_dmg_t: float = 99.0
+	var ph1: bool = false
+	var ph2: bool = false
 
 class Tower:
 	var tid: String
@@ -68,6 +74,7 @@ class Proj:
 	var poison_dps: float
 	var poison_dur: float
 	var stun_dur: float
+	var air: bool = true
 	var dead: bool = false
 
 class Pop:
@@ -103,6 +110,16 @@ var hover_cell: Vector2i = Vector2i(-99, -99)
 var speed: int = 1
 var paused: bool = false
 var font: Font
+
+var sel_spell: String = ""
+var spell_cd: Dictionary = {"okyagmuru": 0.0, "don": 0.0}
+var mouse_pos: Vector2 = Vector2.ZERO
+var spell_btns: Dictionary = {}
+
+const SPELLS := {
+	"okyagmuru": {"name":"Ok Yağmuru","icon":"☄","cd":18.0,"radius":120.0,"dmg":75.0,"targeted":true},
+	"don":       {"name":"Don Büyüsü","icon":"❄","cd":28.0,"freeze":2.5,"targeted":false},
+}
 
 var hud: CanvasLayer
 var gold_lbl: Label
@@ -227,7 +244,7 @@ func _sell_val(t: Tower) -> int:
 	return int(round(t.invested * 0.6))
 
 # ------------------------------------------------- simülasyon
-func _spawn(type: String) -> void:
+func _make_enemy(type: String) -> Enemy:
 	var d: Dictionary = Defs.ENEMIES[type]
 	var scale := 1.0 + 0.06 * wave_index
 	var e := Enemy.new()
@@ -237,8 +254,22 @@ func _spawn(type: String) -> void:
 	e.r = float(d["r"]); e.color = d["color"]
 	e.gold = int(d["gold"]); e.leak = int(d["leak"])
 	e.boss = bool(d.get("boss", false))
+	e.armor = float(d.get("armor", 0.0))
+	e.flying = bool(d.get("flying", false))
+	e.regen = float(d.get("regen", 0.0))
+	e.last_dmg_t = 99.0
 	e.pos = curve.sample_baked(0.0)
-	enemies.append(e)
+	return e
+
+func _spawn(type: String) -> void:
+	enemies.append(_make_enemy(type))
+
+func _summon(into: Array, boss: Enemy, n: int) -> void:
+	for i in n:
+		var e := _make_enemy("yarasa")
+		e.dist = max(0.0, boss.dist - 20.0 - i * 8.0)
+		e.pos = curve.sample_baked(e.dist)
+		into.append(e)
 
 func _pop(p: Vector2, text: String, color: Color) -> void:
 	var pop := Pop.new(); pop.pos = p; pop.text = text; pop.color = color; pop.t = 0.9
@@ -255,7 +286,9 @@ func step(dt: float) -> void:
 	while spawned < schedule.size() and wave_clock >= schedule[spawned]["t"]:
 		_spawn(schedule[spawned]["type"]); spawned += 1
 	# düşmanlar + durum etkileri
+	var summons: Array = []
 	for e in enemies:
+		e.last_dmg_t += dt
 		if e.stun_t > 0.0:
 			e.stun_t -= dt; e.speed = 0.0
 		elif e.slow_t > 0.0:
@@ -264,8 +297,17 @@ func step(dt: float) -> void:
 		else:
 			e.speed = e.base_speed
 		if e.poison_t > 0.0:
-			e.poison_t -= dt; e.hp -= e.poison_dps * dt
+			e.poison_t -= dt; e.hp -= e.poison_dps * dt; e.last_dmg_t = 0.0
 			if e.poison_t <= 0.0: e.poison_dps = 0.0
+		if e.regen > 0.0 and e.last_dmg_t > 2.0 and e.hp < e.max_hp:
+			e.hp = min(e.max_hp, e.hp + e.regen * dt)
+		if e.type == "vlad" and e.alive:
+			if not e.ph1 and e.hp <= e.max_hp * 0.66:
+				e.ph1 = true; e.base_speed *= 1.3; _summon(summons, e, 4)
+				_pop(e.pos + Vector2(0, -36), "Yarasa Sürüsü!", Color("caa6e2"))
+			if not e.ph2 and e.hp <= e.max_hp * 0.33:
+				e.ph2 = true; e.base_speed *= 1.3; _summon(summons, e, 6)
+				_pop(e.pos + Vector2(0, -36), "Kan Çağrısı!", Color("c6362b"))
 		if e.hit > 0.0: e.hit -= dt
 		e.dist += e.speed * dt
 		if e.dist >= path_len:
@@ -273,6 +315,8 @@ func step(dt: float) -> void:
 			_pop(Vector2(360, 150), "-%d sur" % e.leak, Color("d8463a"))
 		else:
 			e.pos = curve.sample_baked(e.dist)
+	if not summons.is_empty():
+		enemies.append_array(summons)
 	# destek aura kuleleri topla
 	var supports: Array = []
 	for t in towers:
@@ -297,8 +341,11 @@ func step(dt: float) -> void:
 		# menzildeki hedefler (ilerleyene göre sıralı)
 		var in_range: Array = []
 		var rr = t.range_px * t.range_px
+		var tair = Defs.TOWERS[t.tid].get("air", true)
 		for e in enemies:
-			if e.alive and e.pos.distance_squared_to(t.pos) <= rr:
+			if not e.alive: continue
+			if e.flying and not tair: continue
+			if e.pos.distance_squared_to(t.pos) <= rr:
 				in_range.append(e)
 		if in_range.is_empty():
 			continue
@@ -355,6 +402,7 @@ func _fire_at(t: Tower, e: Enemy, dmg: float) -> void:
 	p.dmg = dmg; p.splash = t.splash; p.color = d["color"]
 	p.kind = d["proj"]; p.slow = t.slow; p.slow_dur = t.slow_dur
 	p.poison_dps = t.poison_dps; p.poison_dur = t.poison_dur; p.stun_dur = t.stun_dur
+	p.air = Defs.TOWERS[t.tid].get("air", true)
 	if t.tid == "deli":
 		p.speed = 900.0
 	elif t.splash > 0:
@@ -372,23 +420,31 @@ func _apply_status(e: Enemy, p: Proj) -> void:
 	if p.stun_dur > 0.0:
 		e.stun_t = max(e.stun_t, p.stun_dur)
 
+func _hurt(e: Enemy, dmg: float, ignore_armor: bool) -> void:
+	var dd = dmg if ignore_armor else max(1.0, dmg - e.armor)
+	e.hp -= dd; e.hit = 0.12; e.last_dmg_t = 0.0
+
 func _impact(p: Proj) -> void:
 	if p.splash > 0:
 		for e in enemies:
 			if not e.alive: continue
+			if e.flying and not p.air: continue
 			if e.pos.distance_to(p.pos) <= p.splash:
-				e.hp -= p.dmg; e.hit = 0.12; _apply_status(e, p)
+				_hurt(e, p.dmg, false); _apply_status(e, p)
 		_ring(p.pos, p.splash, p.color)
 	else:
 		var e := p.target
 		if e and e.alive:
-			e.hp -= p.dmg; e.hit = 0.12; _apply_status(e, p)
+			_hurt(e, p.dmg, false); _apply_status(e, p)
 
 func _process(delta: float) -> void:
 	if not paused and phase == "wave":
 		for i in speed:
 			if phase != "wave": break
 			step(delta)
+	for k in spell_cd:
+		if float(spell_cd[k]) > 0.0:
+			spell_cd[k] = max(0.0, float(spell_cd[k]) - delta)
 	if toast_t > 0.0:
 		toast_t -= delta
 		if toast_t <= 0.0: toast_lbl.visible = false
@@ -424,6 +480,10 @@ func _draw() -> void:
 		draw_circle(ce, float(d["range"]), Color(0.91, 0.71, 0.29, 0.08) if ok else Color(0.85, 0.27, 0.23, 0.12))
 		draw_arc(ce, float(d["range"]), 0, TAU, 48, Color(0.91, 0.71, 0.29, 0.4) if ok else Color(0.85, 0.27, 0.23, 0.5), 1.5)
 		_draw_tower_glyph(ce, sel_type, 1, 0.65)
+	if sel_spell == "okyagmuru":
+		var spr: Dictionary = SPELLS["okyagmuru"]
+		draw_circle(mouse_pos, float(spr["radius"]), Color(0.91, 0.82, 0.54, 0.12))
+		draw_arc(mouse_pos, float(spr["radius"]), 0, TAU, 40, Color(0.91, 0.82, 0.54, 0.5), 2.0)
 	if sel_tower:
 		draw_circle(sel_tower.pos, sel_tower.range_px, Color(0.91, 0.71, 0.29, 0.07))
 		draw_arc(sel_tower.pos, sel_tower.range_px, 0, TAU, 48, Color(0.91, 0.71, 0.29, 0.45), 1.5)
@@ -456,6 +516,10 @@ func _draw_tower_glyph(pos: Vector2, tid: String, level: int, alpha: float) -> v
 			draw_circle(pos + Vector2(-9 + i * 9, -32), 3.2, Color("e8b64a"))
 
 func _draw_enemy(e: Enemy) -> void:
+	if e.flying:
+		draw_circle(e.pos + Vector2(0, e.r + 7), e.r * 0.7, Color(0, 0, 0, 0.22))
+	if e.armor > 0.0:
+		draw_arc(e.pos, e.r + 2, 0, TAU, 20, Color(0.74, 0.78, 0.84, 0.7), 2.0)
 	if e.stun_t > 0.0:
 		draw_arc(e.pos, e.r + 4, 0, TAU, 20, Color(0.95, 0.85, 0.3, 0.9), 2.5)
 	elif e.slow_t > 0.0:
@@ -497,10 +561,14 @@ func _label(pos: Vector2, text: String, color: Color, size: int, center := true)
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var m := get_global_mouse_position()
+		mouse_pos = m
 		hover_cell = Vector2i(int(m.x / TILE), int(m.y / TILE))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if phase == "won" or phase == "lost": return
 		var m := get_global_mouse_position()
+		if sel_spell != "":
+			_cast(sel_spell, m)
+			return
 		var c := int(m.x / TILE); var r := int(m.y / TILE)
 		if c < 0 or c >= Defs.COLS or r < 0 or r >= Defs.ROWS: return
 		var existing := _tower_at(c, r)
@@ -535,7 +603,7 @@ func _build_hud() -> void:
 
 	var bottom := VBoxContainer.new()
 	bottom.anchor_left = 0; bottom.anchor_right = 1; bottom.anchor_top = 1; bottom.anchor_bottom = 1
-	bottom.offset_left = 8; bottom.offset_right = -8; bottom.offset_top = -268; bottom.offset_bottom = -10
+	bottom.offset_left = 8; bottom.offset_right = -8; bottom.offset_top = -322; bottom.offset_bottom = -10
 	bottom.add_theme_constant_override("separation", 7)
 	hud.add_child(bottom)
 
@@ -567,6 +635,20 @@ func _build_hud() -> void:
 	sell_btn = _mk_button("Sat", Color("4a4a54"), Color.WHITE)
 	sell_btn.pressed.connect(_on_sell)
 	brow.add_child(sell_btn)
+
+	# büyü satırı
+	var spells_row := HBoxContainer.new()
+	spells_row.add_theme_constant_override("separation", 8)
+	bottom.add_child(spells_row)
+	for sid in ["okyagmuru", "don"]:
+		var sp: Dictionary = SPELLS[sid]
+		var sbtn := _mk_button("%s %s" % [sp["icon"], sp["name"]], Color("1b2b33"), Color("bfe6f0"))
+		sbtn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sbtn.add_theme_font_size_override("font_size", 16)
+		var sid_local = sid
+		sbtn.pressed.connect(func(): _on_spell(sid_local))
+		spells_row.add_child(sbtn)
+		spell_btns[sid] = sbtn
 
 	var ctrl := HBoxContainer.new()
 	ctrl.add_theme_constant_override("separation", 8)
@@ -723,6 +805,32 @@ func _on_sell() -> void:
 	sel_tower = null
 	_refresh_hud()
 
+func _on_spell(id: String) -> void:
+	if float(spell_cd[id]) > 0.0: return
+	var sp: Dictionary = SPELLS[id]
+	if sp["targeted"]:
+		sel_spell = "" if sel_spell == id else id
+		sel_type = ""; sel_tower = null
+		_refresh_hud()
+	else:
+		_cast(id, Vector2.ZERO)
+
+func _cast(id: String, pos: Vector2) -> void:
+	var sp: Dictionary = SPELLS[id]
+	spell_cd[id] = sp["cd"]
+	if id == "okyagmuru":
+		for e in enemies:
+			if e.alive and e.pos.distance_to(pos) <= float(sp["radius"]):
+				_hurt(e, float(sp["dmg"]), true)
+		_ring(pos, float(sp["radius"]), Color("e8d08a"))
+		_ring(pos, float(sp["radius"]) * 0.6, Color("e8d08a"))
+	elif id == "don":
+		for e in enemies:
+			if e.alive: e.stun_t = max(e.stun_t, float(sp["freeze"]))
+		_ring(Vector2(360, 760), 320, Color("7fd3ff"))
+	sel_spell = ""
+	_refresh_hud()
+
 func _refresh_stats() -> void:
 	gold_lbl.text = str(gold)
 	life_lbl.text = str(life)
@@ -733,6 +841,19 @@ func _refresh_stats() -> void:
 	elif phase == "lost": start_btn.text = "Mağlup"
 	elif in_wave: start_btn.text = "Dalga Sürüyor…"
 	else: start_btn.text = "Dalgayı Başlat ▸ %d" % (wave_index + 1)
+	for id in spell_btns:
+		var b: Button = spell_btns[id]
+		var cd := float(spell_cd[id])
+		var sp: Dictionary = SPELLS[id]
+		if cd > 0.0:
+			b.text = "%s %ds" % [sp["icon"], int(ceil(cd))]; b.disabled = true
+		else:
+			b.text = "%s %s" % [sp["icon"], sp["name"]]; b.disabled = false
+		var sb: StyleBoxFlat = b.get_theme_stylebox("normal")
+		var bw := 2 if id == sel_spell else 0
+		sb.border_width_left = bw; sb.border_width_right = bw
+		sb.border_width_top = bw; sb.border_width_bottom = bw
+		sb.border_color = Color("7fd3ff")
 
 func _refresh_hud() -> void:
 	_refresh_stats()

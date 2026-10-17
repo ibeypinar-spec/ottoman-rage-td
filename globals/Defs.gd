@@ -43,7 +43,7 @@ const TOWERS := {
 	"deli": {
 		"name":"Deli","cls":"Cengâver","cost":85,"glyph":"D","color":Color("e05a7a"),
 		"range":100,"damage":15,"fire_rate":0.8,"splash":100,"slow":0.0,"slow_dur":0.0,
-		"proj":"whirl","desc":"Kısa menzil, çevredeki herkese döne döne vurur.",
+		"air":false,"proj":"whirl","desc":"Kısa menzil, çevredekilere döne döne vurur. Uçanları vuramaz.",
 		"branches":{
 			"ofke":{"name":"Kan Öfkesi","desc":"Vurdukça hasarı artar (öfke birikir).",
 				"t1":{"cost":80,"damage":1.2,"ramp":0.08},
@@ -98,11 +98,14 @@ const SHOP_ORDER := ["sipahi", "yeniceri", "deli", "abdal", "ozan", "imam"]
 
 # ------------------------------------------------------------------ DÜŞMANLAR
 const ENEMIES := {
-	"eskiya":   {"name":"Eşkıya",      "hp": 42,   "speed": 70,  "gold": 6,   "leak": 1,  "r": 14, "color": Color("c25b40")},
-	"asker":    {"name":"Asker",       "hp": 100,  "speed": 54,  "gold": 11,  "leak": 1,  "r": 15, "color": Color("9199a6")},
-	"strigoi":  {"name":"Strigoi",     "hp": 74,   "speed": 100, "gold": 13,  "leak": 1,  "r": 14, "color": Color("caa6e2")},
-	"vukodlak": {"name":"Vukodlak",    "hp": 460,  "speed": 42,  "gold": 45,  "leak": 3,  "r": 21, "color": Color("6a5440"), "boss": true},
-	"vlad":     {"name":"Vlad Dracul", "hp": 3400, "speed": 38,  "gold": 260, "leak": 10, "r": 28, "color": Color("8a1522"), "boss": true},
+	"eskiya":   {"name":"Eşkıya",         "hp": 42,   "speed": 70,  "gold": 6,   "leak": 1,  "r": 14, "color": Color("c25b40")},
+	"asker":    {"name":"Asker",          "hp": 100,  "speed": 54,  "gold": 11,  "leak": 1,  "r": 15, "color": Color("9199a6")},
+	"strigoi":  {"name":"Strigoi",        "hp": 74,   "speed": 100, "gold": 13,  "leak": 1,  "r": 14, "color": Color("caa6e2")},
+	"zirhli":   {"name":"Zırhlı Muhafız", "hp": 230,  "speed": 40,  "gold": 22,  "leak": 2,  "r": 17, "color": Color("7d8694"), "armor": 12},
+	"yarasa":   {"name":"Yarasa Sürüsü",  "hp": 30,   "speed": 122, "gold": 5,   "leak": 1,  "r": 10, "color": Color("6a4f80"), "flying": true},
+	"hortlak":  {"name":"Hortlak",        "hp": 150,  "speed": 52,  "gold": 18,  "leak": 1,  "r": 15, "color": Color("8aa06a"), "regen": 20},
+	"vukodlak": {"name":"Vukodlak",       "hp": 460,  "speed": 42,  "gold": 45,  "leak": 3,  "r": 21, "color": Color("6a5440"), "boss": true},
+	"vlad":     {"name":"Vlad Dracul",    "hp": 3400, "speed": 36,  "gold": 260, "leak": 10, "r": 28, "color": Color("8a1522"), "boss": true, "regen": 22},
 }
 
 # ------------------------------------------------------------------ DALGALAR
@@ -111,15 +114,15 @@ const WAVES := [
 	[{"t":"eskiya","n":12,"gap":0.6,"delay":0.3}],
 	[{"t":"asker","n":6,"gap":1.0,"delay":0.3},{"t":"eskiya","n":8,"gap":0.5,"delay":1.0}],
 	[{"t":"strigoi","n":8,"gap":0.55,"delay":0.3}],
-	[{"t":"asker","n":12,"gap":0.6,"delay":0.3}],
+	[{"t":"asker","n":8,"gap":0.6,"delay":0.3},{"t":"zirhli","n":3,"gap":1.6,"delay":1.5}],
 	[{"t":"vukodlak","n":1,"gap":1,"delay":0.2},{"t":"eskiya","n":14,"gap":0.45,"delay":1.5}],
-	[{"t":"strigoi","n":14,"gap":0.42,"delay":0.3}],
-	[{"t":"asker","n":12,"gap":0.5,"delay":0.3},{"t":"strigoi","n":8,"gap":0.5,"delay":3}],
-	[{"t":"vukodlak","n":2,"gap":3,"delay":0.2},{"t":"asker","n":12,"gap":0.5,"delay":1}],
-	[{"t":"strigoi","n":20,"gap":0.33,"delay":0.3}],
-	[{"t":"vukodlak","n":3,"gap":2.5,"delay":0.2},{"t":"eskiya","n":18,"gap":0.4,"delay":1}],
-	[{"t":"vukodlak","n":4,"gap":2,"delay":0.2},{"t":"strigoi","n":14,"gap":0.4,"delay":1}],
-	[{"t":"vlad","n":1,"gap":1,"delay":0.5},{"t":"vukodlak","n":3,"gap":4,"delay":2},{"t":"strigoi","n":14,"gap":0.5,"delay":3}],
+	[{"t":"strigoi","n":10,"gap":0.45,"delay":0.3},{"t":"yarasa","n":8,"gap":0.4,"delay":2.5}],
+	[{"t":"asker","n":10,"gap":0.5,"delay":0.3},{"t":"hortlak","n":4,"gap":1.4,"delay":2}],
+	[{"t":"zirhli","n":5,"gap":1.3,"delay":0.3},{"t":"vukodlak","n":2,"gap":4,"delay":1}],
+	[{"t":"yarasa","n":16,"gap":0.3,"delay":0.3},{"t":"strigoi","n":10,"gap":0.4,"delay":2}],
+	[{"t":"hortlak","n":6,"gap":1.1,"delay":0.3},{"t":"vukodlak","n":3,"gap":2.5,"delay":1}],
+	[{"t":"zirhli","n":6,"gap":1.0,"delay":0.3},{"t":"yarasa","n":12,"gap":0.3,"delay":2},{"t":"vukodlak","n":3,"gap":2.5,"delay":3}],
+	[{"t":"vlad","n":1,"gap":1,"delay":0.5},{"t":"vukodlak","n":3,"gap":4,"delay":2},{"t":"strigoi","n":12,"gap":0.5,"delay":3}],
 ]
 
 # ------------------------------------------------------------------ HARİTALAR
