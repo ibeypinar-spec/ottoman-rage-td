@@ -1,11 +1,11 @@
 extends Node2D
 class_name GameScreen
 ## Tower defense sahnesi — simülasyon + çizim + dokunmatik HUD, tek dosyada.
+## Dallanan yükseltme ağacı, durum etkileri (zehir/yavaşlat/sersemlet), Ozan aura'sı.
 
 var main: Node
 var map_id: String = "istanbul"
 
-# ---- iç veri sınıfları ----
 class Enemy:
 	var type: String
 	var name: String
@@ -20,6 +20,10 @@ class Enemy:
 	var leak: int
 	var boss: bool = false
 	var slow_t: float = 0.0
+	var slow_factor: float = 1.0
+	var poison_t: float = 0.0
+	var poison_dps: float = 0.0
+	var stun_t: float = 0.0
 	var hit: float = 0.0
 	var alive: bool = true
 	var pos: Vector2 = Vector2.ZERO
@@ -30,6 +34,7 @@ class Tower:
 	var r: int
 	var pos: Vector2
 	var level: int = 1
+	var branch: String = ""
 	var cd: float = 0.0
 	var range_px: float
 	var damage: float
@@ -37,6 +42,16 @@ class Tower:
 	var splash: float
 	var slow: float
 	var slow_dur: float
+	var poison_dps: float = 0.0
+	var poison_dur: float = 0.0
+	var stun_dur: float = 0.0
+	var multishot: int = 1
+	var is_support: bool = false
+	var aura_dmg: float = 0.0
+	var aura_fr: float = 0.0
+	var ramp: float = 0.0
+	var ramp_stacks: float = 0.0
+	var idle: float = 0.0
 	var invested: int
 
 class Proj:
@@ -50,6 +65,9 @@ class Proj:
 	var kind: String
 	var slow: float
 	var slow_dur: float
+	var poison_dps: float
+	var poison_dur: float
+	var stun_dur: float
 	var dead: bool = false
 
 class Pop:
@@ -59,7 +77,6 @@ class Pop:
 	var t: float
 	var ring: float = 0.0
 
-# ---- durum ----
 var mapdef: Dictionary
 var path_keys: Dictionary = {}
 var curve: Curve2D
@@ -71,7 +88,7 @@ var gold: int
 var life: int
 var start_life: int
 var wave_index: int = 0
-var phase: String = "ready"   # ready | wave | won | lost
+var phase: String = "ready"
 var enemies: Array = []
 var towers: Array = []
 var projs: Array = []
@@ -85,10 +102,8 @@ var sel_tower: Tower = null
 var hover_cell: Vector2i = Vector2i(-99, -99)
 var speed: int = 1
 var paused: bool = false
-
 var font: Font
 
-# ---- HUD referansları ----
 var hud: CanvasLayer
 var gold_lbl: Label
 var life_lbl: Label
@@ -96,9 +111,11 @@ var wave_lbl: Label
 var start_btn: Button
 var speed_btn: Button
 var pause_btn: Button
-var sel_row: HBoxContainer
+var sel_box: VBoxContainer
 var sel_lbl: Label
-var up_btn: Button
+var sel_desc: Label
+var up1_btn: Button
+var up2_btn: Button
 var sell_btn: Button
 var shop_btns: Dictionary = {}
 var overlay: Control
@@ -120,7 +137,6 @@ func _ready() -> void:
 	_refresh_hud()
 	set_process_unhandled_input(true)
 
-# ----------------------------------------------------- yol / harita
 func _cell_center(c: int, r: int) -> Vector2:
 	return Vector2(c * TILE + TILE / 2.0, r * TILE + TILE / 2.0)
 
@@ -162,32 +178,55 @@ func _tower_at(c: int, r: int) -> Tower:
 			return t
 	return null
 
-# ----------------------------------------------------- kule yardımcıları
+# ------------------------------------------------- kule stat hesaplama
 func _make_tower(tid: String, c: int, r: int) -> Tower:
-	var d: Dictionary = Defs.TOWERS[tid]
 	var t := Tower.new()
 	t.tid = tid; t.c = c; t.r = r; t.pos = _cell_center(c, r)
-	t.level = 1; t.invested = int(d["cost"])
-	t.splash = float(d["splash"]); t.slow = float(d["slow"]); t.slow_dur = float(d["slow_dur"])
-	_apply_level(t)
+	t.level = 1; t.branch = ""; t.invested = int(Defs.TOWERS[tid]["cost"])
+	_recalc(t)
 	return t
 
-func _apply_level(t: Tower) -> void:
+func _recalc(t: Tower) -> void:
 	var d: Dictionary = Defs.TOWERS[t.tid]
-	var L := t.level - 1
-	t.damage = float(d["damage"]) * (1.0 + 0.65 * L) * GameData.damage_mult()
-	t.range_px = float(d["range"]) * (1.0 + 0.12 * L)
-	t.fire_rate = float(d["fire_rate"]) * (1.0 - 0.06 * L)
-	if float(d["splash"]) > 0:
-		t.splash = float(d["splash"]) * (1.0 + 0.1 * L)
+	t.damage = float(d["damage"]); t.range_px = float(d["range"]); t.fire_rate = float(d["fire_rate"])
+	t.splash = float(d["splash"]); t.slow = float(d["slow"]); t.slow_dur = float(d["slow_dur"])
+	t.poison_dps = 0.0; t.poison_dur = 0.0; t.stun_dur = 0.0; t.multishot = 1; t.ramp = 0.0
+	t.is_support = bool(d.get("support", false))
+	t.aura_dmg = float(d.get("aura_dmg", 0.0)); t.aura_fr = float(d.get("aura_fr", 0.0))
+	if t.branch != "" and t.level >= 2:
+		var tier: Dictionary = d["branches"][t.branch]["t2" if t.level >= 3 else "t1"]
+		if tier.has("damage"): t.damage *= float(tier["damage"])
+		if tier.has("range"): t.range_px *= float(tier["range"])
+		if tier.has("fire_rate"): t.fire_rate *= float(tier["fire_rate"])
+		if tier.has("splash"): t.splash *= float(tier["splash"])
+		if tier.has("splash_abs"): t.splash = float(tier["splash_abs"])
+		if tier.has("slow"): t.slow = float(tier["slow"])
+		if tier.has("slow_dur"): t.slow_dur = float(tier["slow_dur"])
+		if tier.has("poison_dps"): t.poison_dps = float(tier["poison_dps"])
+		if tier.has("poison_dur"): t.poison_dur = float(tier["poison_dur"])
+		if tier.has("stun_dur"): t.stun_dur = float(tier["stun_dur"])
+		if tier.has("multishot"): t.multishot = int(tier["multishot"])
+		if tier.has("ramp"): t.ramp = float(tier["ramp"])
+		if tier.has("aura_dmg"): t.aura_dmg = float(tier["aura_dmg"])
+		if tier.has("aura_fr"): t.aura_fr = float(tier["aura_fr"])
+	t.damage *= GameData.damage_mult()
 
-func _up_cost(t: Tower) -> int:
-	return int(round(float(Defs.TOWERS[t.tid]["cost"]) * 0.8 * t.level))
+func _branch_keys(tid: String) -> Array:
+	return Defs.TOWERS[tid]["branches"].keys()
+
+func _up_cost(t: Tower, slot: int) -> int:
+	var d: Dictionary = Defs.TOWERS[t.tid]
+	if t.level == 1:
+		var br: String = _branch_keys(t.tid)[slot]
+		return int(d["branches"][br]["t1"]["cost"])
+	elif t.level == 2:
+		return int(d["branches"][t.branch]["t2"]["cost"])
+	return 0
 
 func _sell_val(t: Tower) -> int:
 	return int(round(t.invested * 0.6))
 
-# ----------------------------------------------------- simülasyon
+# ------------------------------------------------- simülasyon
 func _spawn(type: String) -> void:
 	var d: Dictionary = Defs.ENEMIES[type]
 	var scale := 1.0 + 0.06 * wave_index
@@ -202,13 +241,11 @@ func _spawn(type: String) -> void:
 	enemies.append(e)
 
 func _pop(p: Vector2, text: String, color: Color) -> void:
-	var pop := Pop.new()
-	pop.pos = p; pop.text = text; pop.color = color; pop.t = 0.9
+	var pop := Pop.new(); pop.pos = p; pop.text = text; pop.color = color; pop.t = 0.9
 	pops.append(pop)
 
 func _ring(p: Vector2, radius: float, color: Color) -> void:
-	var pop := Pop.new()
-	pop.pos = p; pop.ring = radius; pop.color = color; pop.t = 0.28
+	var pop := Pop.new(); pop.pos = p; pop.ring = radius; pop.color = color; pop.t = 0.28
 	pops.append(pop)
 
 func step(dt: float) -> void:
@@ -216,36 +253,64 @@ func step(dt: float) -> void:
 		return
 	wave_clock += dt
 	while spawned < schedule.size() and wave_clock >= schedule[spawned]["t"]:
-		_spawn(schedule[spawned]["type"])
-		spawned += 1
-	# düşmanlar
+		_spawn(schedule[spawned]["type"]); spawned += 1
+	# düşmanlar + durum etkileri
 	for e in enemies:
-		if e.slow_t > 0.0:
-			e.slow_t -= dt; e.speed = e.base_speed * 0.5
+		if e.stun_t > 0.0:
+			e.stun_t -= dt; e.speed = 0.0
+		elif e.slow_t > 0.0:
+			e.slow_t -= dt; e.speed = e.base_speed * e.slow_factor
+			if e.slow_t <= 0.0: e.slow_factor = 1.0
 		else:
 			e.speed = e.base_speed
+		if e.poison_t > 0.0:
+			e.poison_t -= dt; e.hp -= e.poison_dps * dt
+			if e.poison_t <= 0.0: e.poison_dps = 0.0
 		if e.hit > 0.0: e.hit -= dt
 		e.dist += e.speed * dt
 		if e.dist >= path_len:
-			e.alive = false
-			life -= e.leak
+			e.alive = false; life -= e.leak
 			_pop(Vector2(360, 150), "-%d sur" % e.leak, Color("d8463a"))
 		else:
 			e.pos = curve.sample_baked(e.dist)
+	# destek aura kuleleri topla
+	var supports: Array = []
+	for t in towers:
+		if t.is_support:
+			supports.append(t)
 	# kuleler ateş
 	for t in towers:
+		if t.is_support:
+			continue
 		t.cd -= dt
-		if t.cd > 0.0: continue
-		var best: Enemy = null
-		var bd := -1.0
+		t.idle += dt
+		# öfke yığını sönümlemesi
+		if t.ramp > 0.0 and t.idle > 1.5 and t.ramp_stacks > 0.0:
+			t.ramp_stacks = max(0.0, t.ramp_stacks - dt * 2.0)
+		if t.cd > 0.0:
+			continue
+		# aura katkıları
+		var adm := 0.0; var afr := 0.0
+		for s in supports:
+			if t.pos.distance_to(s.pos) <= s.range_px:
+				adm += s.aura_dmg; afr += s.aura_fr
+		# menzildeki hedefler (ilerleyene göre sıralı)
+		var in_range: Array = []
 		var rr = t.range_px * t.range_px
 		for e in enemies:
-			if not e.alive: continue
-			if e.pos.distance_squared_to(t.pos) <= rr and e.dist > bd:
-				best = e; bd = e.dist
-		if best:
-			t.cd = t.fire_rate
-			_fire(t, best)
+			if e.alive and e.pos.distance_squared_to(t.pos) <= rr:
+				in_range.append(e)
+		if in_range.is_empty():
+			continue
+		in_range.sort_custom(func(a, b): return a.dist > b.dist)
+		t.cd = t.fire_rate / (1.0 + afr)
+		t.idle = 0.0
+		if t.ramp > 0.0:
+			t.ramp_stacks = min(8.0, t.ramp_stacks + 1.0)
+		var eff_dmg = t.damage * (1.0 + t.ramp * t.ramp_stacks) * (1.0 + adm)
+		var n: int = min(t.multishot, in_range.size())
+		for i in n:
+			_fire_at(t, in_range[i], eff_dmg)
 	# mermiler
 	for p in projs:
 		if p.dead: continue
@@ -264,14 +329,12 @@ func step(dt: float) -> void:
 	# ölümler → altın
 	for e in enemies:
 		if e.alive and e.hp <= 0.0:
-			e.alive = false
-			gold += e.gold
+			e.alive = false; gold += e.gold
 			_pop(e.pos + Vector2(0, -16), "+%d" % e.gold, Color("e8b64a"))
 	enemies = enemies.filter(func(e): return e.alive)
 	projs = projs.filter(func(p): return not p.dead)
 	for pop in pops:
-		pop.t -= dt
-		pop.pos.y -= 20.0 * dt
+		pop.t -= dt; pop.pos.y -= 20.0 * dt
 	pops = pops.filter(func(p): return p.t > 0.0)
 	# kaybet / dalga tamam
 	if life <= 0:
@@ -281,37 +344,45 @@ func step(dt: float) -> void:
 		gold += b
 		_pop(Vector2(360, 640), "Dalga temiz! +%d" % b, Color("e8b64a"))
 		wave_index += 1
-		if wave_index >= Defs.wave_count():
-			_win()
-		else:
-			phase = "ready"
+		if wave_index >= Defs.wave_count(): _win()
+		else: phase = "ready"
 		_refresh_hud()
 
-func _fire(t: Tower, e: Enemy) -> void:
+func _fire_at(t: Tower, e: Enemy, dmg: float) -> void:
 	var d: Dictionary = Defs.TOWERS[t.tid]
 	var p := Proj.new()
 	p.pos = t.pos; p.lpos = e.pos; p.target = e
-	p.dmg = t.damage; p.splash = t.splash; p.color = d["color"]
+	p.dmg = dmg; p.splash = t.splash; p.color = d["color"]
 	p.kind = d["proj"]; p.slow = t.slow; p.slow_dur = t.slow_dur
-	if t.splash > 0:
-		p.speed = 360.0 if t.tid == "topcu" else 420.0
+	p.poison_dps = t.poison_dps; p.poison_dur = t.poison_dur; p.stun_dur = t.stun_dur
+	if t.tid == "deli":
+		p.speed = 900.0
+	elif t.splash > 0:
+		p.speed = 420.0
 	else:
 		p.speed = 680.0 if t.tid == "sipahi" else 760.0
 	projs.append(p)
+
+func _apply_status(e: Enemy, p: Proj) -> void:
+	if p.slow > 0.0:
+		e.slow_t = max(e.slow_t, p.slow_dur)
+		e.slow_factor = min(e.slow_factor if e.slow_t > 0.0 else 1.0, 1.0 - p.slow)
+	if p.poison_dps > 0.0:
+		e.poison_dps = max(e.poison_dps, p.poison_dps); e.poison_t = max(e.poison_t, p.poison_dur)
+	if p.stun_dur > 0.0:
+		e.stun_t = max(e.stun_t, p.stun_dur)
 
 func _impact(p: Proj) -> void:
 	if p.splash > 0:
 		for e in enemies:
 			if not e.alive: continue
 			if e.pos.distance_to(p.pos) <= p.splash:
-				e.hp -= p.dmg; e.hit = 0.12
-				if p.slow > 0: e.slow_t = max(e.slow_t, p.slow_dur)
+				e.hp -= p.dmg; e.hit = 0.12; _apply_status(e, p)
 		_ring(p.pos, p.splash, p.color)
 	else:
 		var e := p.target
 		if e and e.alive:
-			e.hp -= p.dmg; e.hit = 0.12
-			if p.slow > 0: e.slow_t = max(e.slow_t, p.slow_dur)
+			e.hp -= p.dmg; e.hit = 0.12; _apply_status(e, p)
 
 func _process(delta: float) -> void:
 	if not paused and phase == "wave":
@@ -324,27 +395,26 @@ func _process(delta: float) -> void:
 	_refresh_stats()
 	queue_redraw()
 
-# ----------------------------------------------------- çizim
+# ------------------------------------------------- çizim
 func _draw() -> void:
-	# zemin
 	for r in Defs.ROWS:
 		for c in Defs.COLS:
 			var on_path := path_keys.has(Vector2i(c, r))
 			var col: Color
-			if on_path:
-				col = Color.BLACK
-			else:
-				col = mapdef["ground_b"] if (c + r) % 2 == 1 else mapdef["ground_a"]
+			if on_path: col = Color.BLACK
+			else: col = mapdef["ground_b"] if (c + r) % 2 == 1 else mapdef["ground_a"]
 			draw_rect(Rect2(c * TILE, r * TILE, TILE, TILE), col, true)
 			if not on_path:
 				draw_rect(Rect2(c * TILE, r * TILE, TILE, TILE), Color(0.91, 0.71, 0.29, 0.05), false, 1.0)
-	# yol
 	var pts := curve.get_baked_points()
 	draw_polyline(pts, mapdef["road_edge"], TILE * 0.82, true)
 	draw_polyline(pts, mapdef["road"], TILE * 0.62, true)
-	# giriş / çıkış
 	_label(start_marker + Vector2(0, -TILE * 0.4), "⛬ BÜKREŞ", Color("c25b40"), 20)
 	_label(end_marker + Vector2(0, TILE * 0.2), "⛬ İSTANBUL", Color("e8b64a"), 22)
+	# destek aura halkaları
+	for t in towers:
+		if t.is_support:
+			draw_arc(t.pos, t.range_px, 0, TAU, 40, Color(0.31, 0.64, 0.84, 0.18), 2.0)
 	# yerleştirme hayaleti
 	if sel_type != "" and hover_cell.x > -50:
 		var c := hover_cell.x; var r := hover_cell.y
@@ -354,20 +424,15 @@ func _draw() -> void:
 		draw_circle(ce, float(d["range"]), Color(0.91, 0.71, 0.29, 0.08) if ok else Color(0.85, 0.27, 0.23, 0.12))
 		draw_arc(ce, float(d["range"]), 0, TAU, 48, Color(0.91, 0.71, 0.29, 0.4) if ok else Color(0.85, 0.27, 0.23, 0.5), 1.5)
 		_draw_tower_glyph(ce, sel_type, 1, 0.65)
-	# seçili kule menzili
 	if sel_tower:
 		draw_circle(sel_tower.pos, sel_tower.range_px, Color(0.91, 0.71, 0.29, 0.07))
 		draw_arc(sel_tower.pos, sel_tower.range_px, 0, TAU, 48, Color(0.91, 0.71, 0.29, 0.45), 1.5)
-	# kuleler
 	for t in towers:
 		_draw_tower(t)
-	# mermiler
 	for p in projs:
 		_draw_proj(p)
-	# düşmanlar
 	for e in enemies:
 		_draw_enemy(e)
-	# pop / ring
 	for pop in pops:
 		if pop.ring > 0:
 			var a: float = clamp(pop.t / 0.28, 0.0, 1.0)
@@ -391,8 +456,12 @@ func _draw_tower_glyph(pos: Vector2, tid: String, level: int, alpha: float) -> v
 			draw_circle(pos + Vector2(-9 + i * 9, -32), 3.2, Color("e8b64a"))
 
 func _draw_enemy(e: Enemy) -> void:
-	if e.slow_t > 0.0:
+	if e.stun_t > 0.0:
+		draw_arc(e.pos, e.r + 4, 0, TAU, 20, Color(0.95, 0.85, 0.3, 0.9), 2.5)
+	elif e.slow_t > 0.0:
 		draw_arc(e.pos, e.r + 4, 0, TAU, 24, Color(0.35, 0.7, 0.9, 0.8), 2.5)
+	if e.poison_t > 0.0:
+		draw_arc(e.pos, e.r + 7, 0, TAU, 20, Color(0.45, 0.85, 0.35, 0.7), 2.0)
 	var body := Color.WHITE if e.hit > 0.0 else e.color
 	draw_circle(e.pos, e.r, body)
 	draw_arc(e.pos, e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.5)
@@ -410,9 +479,8 @@ func _draw_proj(p: Proj) -> void:
 			var dir := (p.lpos - p.pos)
 			if dir.length() > 0.1: dir = dir.normalized()
 			draw_line(p.pos, p.pos - dir * 12, Color("e8d08a"), 2.5)
-		"cannon":
-			draw_circle(p.pos, 6, Color(0.16, 0.11, 0.07))
-			draw_arc(p.pos, 6, 0, TAU, 16, p.color, 2.0)
+		"whirl":
+			draw_arc(p.pos, 8, 0, TAU, 12, p.color, 2.5)
 		"magic", "wisp":
 			draw_circle(p.pos, 5, p.color)
 		_:
@@ -425,18 +493,16 @@ func _label(pos: Vector2, text: String, color: Color, size: int, center := true)
 		at = Vector2(pos.x - sz.x / 2, pos.y + sz.y * 0.32)
 	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
-# ----------------------------------------------------- girdi
+# ------------------------------------------------- girdi
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var m := get_global_mouse_position()
 		hover_cell = Vector2i(int(m.x / TILE), int(m.y / TILE))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if phase == "won" or phase == "lost":
-			return
+		if phase == "won" or phase == "lost": return
 		var m := get_global_mouse_position()
 		var c := int(m.x / TILE); var r := int(m.y / TILE)
-		if c < 0 or c >= Defs.COLS or r < 0 or r >= Defs.ROWS:
-			return
+		if c < 0 or c >= Defs.COLS or r < 0 or r >= Defs.ROWS: return
 		var existing := _tower_at(c, r)
 		if sel_type != "":
 			if existing:
@@ -444,22 +510,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif _buildable(c, r):
 				var d: Dictionary = Defs.TOWERS[sel_type]
 				if gold >= int(d["cost"]):
-					gold -= int(d["cost"])
-					towers.append(_make_tower(sel_type, c, r))
+					gold -= int(d["cost"]); towers.append(_make_tower(sel_type, c, r))
 				else:
 					_toast("Yeterli altın yok!")
 		else:
 			sel_tower = existing
 		_refresh_hud()
 
-# ----------------------------------------------------- HUD
+# ------------------------------------------------- HUD
 func _build_hud() -> void:
 	hud = CanvasLayer.new()
 	add_child(hud)
-	# üst bar
 	var top := _panel(Color(0.12, 0.06, 0.08, 0.92))
-	top.anchor_right = 1.0
-	top.offset_bottom = 96
+	top.anchor_right = 1.0; top.offset_bottom = 96
 	hud.add_child(top)
 	var th := HBoxContainer.new()
 	th.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -470,31 +533,41 @@ func _build_hud() -> void:
 	life_lbl = _stat_label(th, "Surlar", Color("c6362b"))
 	wave_lbl = _stat_label(th, "Dalga", Color("f4e6cc"))
 
-	# alt alan
 	var bottom := VBoxContainer.new()
 	bottom.anchor_left = 0; bottom.anchor_right = 1; bottom.anchor_top = 1; bottom.anchor_bottom = 1
-	bottom.offset_left = 10; bottom.offset_right = -10; bottom.offset_top = -244; bottom.offset_bottom = -10
-	bottom.add_theme_constant_override("separation", 8)
+	bottom.offset_left = 8; bottom.offset_right = -8; bottom.offset_top = -268; bottom.offset_bottom = -10
+	bottom.add_theme_constant_override("separation", 7)
 	hud.add_child(bottom)
 
-	# seçili kule satırı
-	sel_row = HBoxContainer.new()
-	sel_row.add_theme_constant_override("separation", 8)
-	sel_row.visible = false
-	bottom.add_child(sel_row)
+	# seçili kule paneli
+	sel_box = VBoxContainer.new()
+	sel_box.add_theme_constant_override("separation", 4)
+	sel_box.visible = false
+	bottom.add_child(sel_box)
 	sel_lbl = Label.new()
-	sel_lbl.add_theme_font_size_override("font_size", 18)
+	sel_lbl.add_theme_font_size_override("font_size", 17)
 	sel_lbl.add_theme_color_override("font_color", Color("f4e6cc"))
-	sel_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sel_row.add_child(sel_lbl)
-	up_btn = _mk_button("Yükselt", Color("d79b2b"), Color("1a0d08"))
-	up_btn.pressed.connect(_on_upgrade)
-	sel_row.add_child(up_btn)
+	sel_box.add_child(sel_lbl)
+	sel_desc = Label.new()
+	sel_desc.add_theme_font_size_override("font_size", 14)
+	sel_desc.add_theme_color_override("font_color", Color("c3a488"))
+	sel_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sel_box.add_child(sel_desc)
+	var brow := HBoxContainer.new()
+	brow.add_theme_constant_override("separation", 7)
+	sel_box.add_child(brow)
+	up1_btn = _mk_button("—", Color("d79b2b"), Color("1a0d08"))
+	up1_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	up1_btn.pressed.connect(func(): _on_up(0))
+	brow.add_child(up1_btn)
+	up2_btn = _mk_button("—", Color("46b3b0"), Color("08221f"))
+	up2_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	up2_btn.pressed.connect(func(): _on_up(1))
+	brow.add_child(up2_btn)
 	sell_btn = _mk_button("Sat", Color("4a4a54"), Color.WHITE)
 	sell_btn.pressed.connect(_on_sell)
-	sel_row.add_child(sell_btn)
+	brow.add_child(sell_btn)
 
-	# kontrol satırı
 	var ctrl := HBoxContainer.new()
 	ctrl.add_theme_constant_override("separation", 8)
 	bottom.add_child(ctrl)
@@ -503,41 +576,37 @@ func _build_hud() -> void:
 	start_btn.pressed.connect(_on_start)
 	ctrl.add_child(start_btn)
 	speed_btn = _mk_button("1×", Color("2a1620"), Color("f4e6cc"))
-	speed_btn.custom_minimum_size = Vector2(72, 0)
+	speed_btn.custom_minimum_size = Vector2(68, 0)
 	speed_btn.pressed.connect(_on_speed)
 	ctrl.add_child(speed_btn)
 	pause_btn = _mk_button("⏸", Color("2a1620"), Color("f4e6cc"))
-	pause_btn.custom_minimum_size = Vector2(72, 0)
+	pause_btn.custom_minimum_size = Vector2(68, 0)
 	pause_btn.pressed.connect(_on_pause)
 	ctrl.add_child(pause_btn)
 
-	# dükkân satırı
 	var shop := HBoxContainer.new()
-	shop.add_theme_constant_override("separation", 7)
+	shop.add_theme_constant_override("separation", 6)
 	bottom.add_child(shop)
 	for tid in Defs.SHOP_ORDER:
 		if not GameData.unlocked.has(tid): continue
 		var d: Dictionary = Defs.TOWERS[tid]
 		var b := _mk_button("%s\n✦%d" % [d["name"], d["cost"]], Color("241320"), Color("f4e6cc"))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(0, 62)
-		b.add_theme_font_size_override("font_size", 16)
+		b.custom_minimum_size = Vector2(0, 58)
+		b.add_theme_font_size_override("font_size", 15)
 		var tid_local = tid
 		b.pressed.connect(func(): _on_shop(tid_local))
 		shop.add_child(b)
 		shop_btns[tid] = b
 
-	# toast
 	toast_lbl = Label.new()
-	toast_lbl.anchor_left = 0.5; toast_lbl.anchor_right = 0.5; toast_lbl.anchor_top = 0.0
-	toast_lbl.offset_top = 108
+	toast_lbl.anchor_left = 0.5; toast_lbl.anchor_right = 0.5; toast_lbl.offset_top = 108
 	toast_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_lbl.add_theme_font_size_override("font_size", 20)
 	toast_lbl.add_theme_color_override("font_color", Color("f4e6cc"))
 	toast_lbl.visible = false
 	hud.add_child(toast_lbl)
 
-	# overlay (kazan/kaybet)
 	overlay = Control.new()
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -572,8 +641,7 @@ func _build_hud() -> void:
 
 func _panel(col: Color) -> Panel:
 	var p := Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = col
+	var sb := StyleBoxFlat.new(); sb.bg_color = col
 	p.add_theme_stylebox_override("panel", sb)
 	return p
 
@@ -581,14 +649,12 @@ func _stat_label(parent: Node, key: String, col: Color) -> Label:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 0)
 	parent.add_child(box)
-	var k := Label.new()
-	k.text = key
+	var k := Label.new(); k.text = key
 	k.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	k.add_theme_font_size_override("font_size", 13)
 	k.add_theme_color_override("font_color", Color("8a6c5c"))
 	box.add_child(k)
-	var v := Label.new()
-	v.text = "0"
+	var v := Label.new(); v.text = "0"
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_theme_font_size_override("font_size", 30)
 	v.add_theme_color_override("font_color", col)
@@ -598,27 +664,26 @@ func _stat_label(parent: Node, key: String, col: Color) -> Label:
 func _mk_button(text: String, bg: Color, fg: Color) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.add_theme_font_size_override("font_size", 19)
-	b.custom_minimum_size = Vector2(0, 54)
+	b.add_theme_font_size_override("font_size", 18)
+	b.custom_minimum_size = Vector2(0, 50)
+	b.clip_text = true
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.set_corner_radius_all(11)
-	sb.content_margin_left = 12; sb.content_margin_right = 12
-	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	sb.bg_color = bg; sb.set_corner_radius_all(11)
+	sb.content_margin_left = 10; sb.content_margin_right = 10
+	sb.content_margin_top = 6; sb.content_margin_bottom = 6
 	b.add_theme_stylebox_override("normal", sb)
 	var sh := sb.duplicate(); sh.bg_color = bg.lightened(0.12)
 	b.add_theme_stylebox_override("hover", sh)
 	b.add_theme_stylebox_override("pressed", sh)
+	b.add_theme_stylebox_override("disabled", sb)
 	b.add_theme_color_override("font_color", fg)
 	b.add_theme_color_override("font_hover_color", fg)
+	b.add_theme_color_override("font_disabled_color", Color(fg.r, fg.g, fg.b, 0.4))
 	return b
 
 func _toast(msg: String) -> void:
-	toast_lbl.text = msg
-	toast_lbl.visible = true
-	toast_t = 1.4
+	toast_lbl.text = msg; toast_lbl.visible = true; toast_t = 1.4
 
-# ---- HUD olayları
 func _on_shop(tid: String) -> void:
 	sel_type = "" if sel_type == tid else tid
 	sel_tower = null
@@ -638,15 +703,18 @@ func _on_pause() -> void:
 	paused = not paused
 	pause_btn.text = "▶" if paused else "⏸"
 
-func _on_upgrade() -> void:
-	if not sel_tower or sel_tower.level >= 3: return
-	var cost := _up_cost(sel_tower)
-	if gold >= cost:
-		gold -= cost; sel_tower.invested += cost
-		sel_tower.level += 1; _apply_level(sel_tower)
-		_refresh_hud()
-	else:
-		_toast("Yeterli altın yok!")
+func _on_up(slot: int) -> void:
+	var t := sel_tower
+	if not t or t.level >= 3: return
+	var cost := _up_cost(t, slot)
+	if gold < cost:
+		_toast("Yeterli altın yok!"); return
+	gold -= cost; t.invested += cost
+	if t.level == 1:
+		t.branch = _branch_keys(t.tid)[slot]
+	t.level += 1
+	_recalc(t)
+	_refresh_hud()
 
 func _on_sell() -> void:
 	if not sel_tower: return
@@ -655,7 +723,6 @@ func _on_sell() -> void:
 	sel_tower = null
 	_refresh_hud()
 
-# ---- HUD yenileme
 func _refresh_stats() -> void:
 	gold_lbl.text = str(gold)
 	life_lbl.text = str(life)
@@ -669,32 +736,48 @@ func _refresh_stats() -> void:
 
 func _refresh_hud() -> void:
 	_refresh_stats()
-	# dükkân seçili vurgusu
 	for tid in shop_btns:
 		var b: Button = shop_btns[tid]
 		var selected = tid == sel_type
 		var affordable = gold >= int(Defs.TOWERS[tid]["cost"])
 		var sb: StyleBoxFlat = b.get_theme_stylebox("normal")
-		sb.border_width_left = 2 if selected else 0
-		sb.border_width_right = 2 if selected else 0
-		sb.border_width_top = 2 if selected else 0
-		sb.border_width_bottom = 2 if selected else 0
+		var bw := 2 if selected else 0
+		sb.border_width_left = bw; sb.border_width_right = bw
+		sb.border_width_top = bw; sb.border_width_bottom = bw
 		sb.border_color = Color("e8b64a")
-		b.modulate = Color(1,1,1,1) if affordable else Color(0.55,0.55,0.55,1)
-	# seçili kule paneli
+		b.modulate = Color(1, 1, 1, 1) if affordable else Color(0.55, 0.55, 0.55, 1)
 	if sel_tower:
-		sel_row.visible = true
-		var d: Dictionary = Defs.TOWERS[sel_tower.tid]
-		sel_lbl.text = "%s  Sv.%d  •  Hasar %d  •  Menzil %d" % [d["name"], sel_tower.level, int(sel_tower.damage), int(sel_tower.range_px)]
-		if sel_tower.level >= 3:
-			up_btn.text = "Azami"; up_btn.disabled = true
+		sel_box.visible = true
+		var t := sel_tower
+		var d: Dictionary = Defs.TOWERS[t.tid]
+		if t.is_support:
+			sel_lbl.text = "%s  Sv.%d  •  +%d%% hasar  •  +%d%% hız  •  Menzil %d" % [d["name"], t.level, int(t.aura_dmg * 100), int(t.aura_fr * 100), int(t.range_px)]
 		else:
-			up_btn.text = "Yükselt ✦%d" % _up_cost(sel_tower); up_btn.disabled = false
-		sell_btn.text = "Sat ✦%d" % _sell_val(sel_tower)
+			sel_lbl.text = "%s  Sv.%d  •  Hasar %d  •  Menzil %d" % [d["name"], t.level, int(t.damage), int(t.range_px)]
+		var bk := _branch_keys(t.tid)
+		if t.level == 1:
+			var b1: Dictionary = d["branches"][bk[0]]
+			var b2: Dictionary = d["branches"][bk[1]]
+			up1_btn.visible = true; up2_btn.visible = true
+			up1_btn.text = "%s\n✦%d" % [b1["name"], int(b1["t1"]["cost"])]
+			up2_btn.text = "%s\n✦%d" % [b2["name"], int(b2["t1"]["cost"])]
+			up1_btn.disabled = gold < int(b1["t1"]["cost"])
+			up2_btn.disabled = gold < int(b2["t1"]["cost"])
+			sel_desc.text = "Dal seç →  %s: %s   |   %s: %s" % [b1["name"], b1["desc"], b2["name"], b2["desc"]]
+		elif t.level == 2:
+			var br: Dictionary = d["branches"][t.branch]
+			up1_btn.visible = true; up2_btn.visible = false
+			var c2 := int(br["t2"]["cost"])
+			up1_btn.text = "%s II  ✦%d" % [br["name"], c2]
+			up1_btn.disabled = gold < c2
+			sel_desc.text = "%s — %s" % [br["name"], br["desc"]]
+		else:
+			up1_btn.visible = false; up2_btn.visible = false
+			sel_desc.text = "Azami seviye — %s" % d["branches"][t.branch]["name"]
+		sell_btn.text = "Sat ✦%d" % _sell_val(t)
 	else:
-		sel_row.visible = false
+		sel_box.visible = false
 
-# ---- bitiş
 func _stars() -> int:
 	if life >= start_life: return 3
 	if life >= int(start_life * 0.6): return 2

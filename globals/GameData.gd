@@ -4,7 +4,7 @@ extends Node
 const SAVE_PATH := "user://save.json"
 
 var meta_gold: int = 0                      # seferler arası biriken hazine
-var unlocked: Array = ["sipahi", "yeniceri", "abdal", "imam", "topcu"]  # açık kuleler
+var unlocked: Array = ["sipahi", "yeniceri", "deli", "abdal", "ozan", "imam"]  # açık kuleler
 var best_stars: Dictionary = {}             # map_id -> 0..3 yıldız
 var perks: Dictionary = {                   # kalıcı yükseltmeler (meta ağaç) — ileride büyüyecek
 	"start_gold_bonus": 0,                  # her sefere ek başlangıç altını
