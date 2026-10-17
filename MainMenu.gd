@@ -47,6 +47,10 @@ func _ready() -> void:
 	play.pressed.connect(func(): main.goto_mapselect())
 	center.add_child(play)
 
+	var ocak := _button("OCAK · YÜKSELTMELER", Color("2a1620"), Color("e8b64a"))
+	ocak.pressed.connect(func(): main.goto_meta())
+	center.add_child(ocak)
+
 	var stars := GameData.map_stars("istanbul")
 	var info := Label.new()
 	info.text = "Hazine: ✦%d    İstanbul Yolu: %s" % [GameData.meta_gold, "★".repeat(stars) + "☆".repeat(3 - stars)]

@@ -3,6 +3,7 @@ extends Node
 
 const MainMenuScript := preload("res://MainMenu.gd")
 const MapSelectScript := preload("res://MapSelect.gd")
+const MetaScreenScript := preload("res://MetaScreen.gd")
 const GameScreenScript := preload("res://GameScreen.gd")
 
 var current: Node = null
@@ -22,6 +23,9 @@ func goto_menu() -> void:
 
 func goto_mapselect() -> void:
 	_swap(MapSelectScript.new())
+
+func goto_meta() -> void:
+	_swap(MetaScreenScript.new())
 
 func goto_game(map_id: String) -> void:
 	var g = GameScreenScript.new()

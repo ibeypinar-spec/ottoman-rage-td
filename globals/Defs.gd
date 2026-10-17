@@ -199,3 +199,14 @@ func wave_preview(wave_index: int) -> String:
 
 func wave_bonus(wave_number: int) -> int:
 	return 25 + 6 * wave_number
+
+# ------------------------------------------------------------------ META YÜKSELTMELER (OCAK)
+# Seferler arası kalıcı hazineyle satın alınır. cost = base + step * mevcut_seviye.
+const PERKS := {
+	"tower_damage":     {"name":"Ocak Talimi",     "icon":"⚔", "desc":"Tüm kuleler +%5 hasar",       "max":6, "cost":80,  "step":70,  "unit":"+%5 hasar"},
+	"start_gold_bonus": {"name":"Sultan Hazinesi",  "icon":"✦", "desc":"Sefere +20 altınla başla",     "max":6, "cost":70,  "step":60,  "unit":"+20 altın"},
+	"start_life_bonus": {"name":"Sur Ustası",       "icon":"⛨", "desc":"Sefere +2 surla başla",        "max":5, "cost":90,  "step":80,  "unit":"+2 sur"},
+	"spell_cd":         {"name":"Sihirdar",         "icon":"✸", "desc":"Büyü bekleme süresi -%10",     "max":4, "cost":120, "step":100, "unit":"-%10 bekleme"},
+	"wave_income":      {"name":"Vergi Düzeni",     "icon":"◈", "desc":"Her dalga sonu +6 altın",      "max":5, "cost":90,  "step":80,  "unit":"+6 altın/dalga"},
+}
+const PERK_ORDER := ["tower_damage", "start_gold_bonus", "start_life_bonus", "spell_cd", "wave_income"]

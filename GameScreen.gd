@@ -389,7 +389,7 @@ func step(dt: float) -> void:
 	if life <= 0:
 		life = 0; _lose(); return
 	if spawned >= schedule.size() and enemies.is_empty():
-		var b := Defs.wave_bonus(wave_index + 1)
+		var b := Defs.wave_bonus(wave_index + 1) + GameData.wave_income_bonus()
 		gold += b
 		_pop(Vector2(360, 640), "Dalga temiz! +%d" % b, Color("e8b64a"))
 		wave_index += 1
@@ -877,7 +877,7 @@ func _on_spell(id: String) -> void:
 
 func _cast(id: String, pos: Vector2) -> void:
 	var sp: Dictionary = SPELLS[id]
-	spell_cd[id] = sp["cd"]
+	spell_cd[id] = float(sp["cd"]) * GameData.spell_cd_mult()
 	if id == "okyagmuru":
 		for e in enemies:
 			if e.alive and e.pos.distance_to(pos) <= float(sp["radius"]):

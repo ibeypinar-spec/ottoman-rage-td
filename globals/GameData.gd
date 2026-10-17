@@ -6,10 +6,12 @@ const SAVE_PATH := "user://save.json"
 var meta_gold: int = 0                      # seferler arası biriken hazine
 var unlocked: Array = ["sipahi", "yeniceri", "deli", "abdal", "ozan", "imam"]  # açık kuleler
 var best_stars: Dictionary = {}             # map_id -> 0..3 yıldız
-var perks: Dictionary = {                   # kalıcı yükseltmeler (meta ağaç) — ileride büyüyecek
-	"start_gold_bonus": 0,                  # her sefere ek başlangıç altını
-	"tower_damage": 0,                      # % kule hasar bonusu (her seviye +%5)
-	"start_life_bonus": 0,                  # ek başlangıç surları
+var perks: Dictionary = {                   # kalıcı yükseltmeler (Ocak meta ağacı)
+	"tower_damage": 0,                      # +%5 kule hasarı / seviye
+	"start_gold_bonus": 0,                  # +20 başlangıç altını / seviye
+	"start_life_bonus": 0,                  # +2 başlangıç suru / seviye
+	"spell_cd": 0,                          # -%10 büyü bekleme / seviye
+	"wave_income": 0,                       # +6 altın/dalga / seviye
 }
 var settings: Dictionary = {"speed": 1}
 
@@ -18,6 +20,31 @@ func _ready() -> void:
 
 func damage_mult() -> float:
 	return 1.0 + 0.05 * int(perks.get("tower_damage", 0))
+
+func spell_cd_mult() -> float:
+	return 1.0 - 0.10 * int(perks.get("spell_cd", 0))
+
+func wave_income_bonus() -> int:
+	return 6 * int(perks.get("wave_income", 0))
+
+func perk_level(key: String) -> int:
+	return int(perks.get(key, 0))
+
+func perk_cost(key: String) -> int:
+	var cat: Dictionary = Defs.PERKS[key]
+	var lvl := perk_level(key)
+	if lvl >= int(cat["max"]):
+		return -1
+	return int(cat["cost"]) + int(cat["step"]) * lvl
+
+func buy_perk(key: String) -> bool:
+	var cost := perk_cost(key)
+	if cost < 0 or meta_gold < cost:
+		return false
+	meta_gold -= cost
+	perks[key] = perk_level(key) + 1
+	save_game()
+	return true
 
 func map_stars(map_id: String) -> int:
 	return int(best_stars.get(map_id, 0))
