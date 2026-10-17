@@ -11,6 +11,19 @@ func _ready() -> void:
 	bg.color = Color("140a10")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# konsept görsel arka plan + koyu katman
+	var tex := load("res://sprites/menu_bg.jpg")
+	if tex:
+		var art := TextureRect.new()
+		art.texture = tex
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		art.modulate = Color(1, 1, 1, 0.5)
+		add_child(art)
+		var ov := ColorRect.new()
+		ov.color = Color(0.08, 0.04, 0.06, 0.66)
+		ov.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(ov)
 
 	var center := VBoxContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)

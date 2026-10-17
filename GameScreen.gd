@@ -116,6 +116,8 @@ var spell_cd: Dictionary = {"okyagmuru": 0.0, "don": 0.0}
 var mouse_pos: Vector2 = Vector2.ZERO
 var spell_btns: Dictionary = {}
 var decor_seed: int = 0
+var tower_tex: Dictionary = {}
+var enemy_tex: Dictionary = {}
 
 const SPELLS := {
 	"okyagmuru": {"name":"Ok Yağmuru","icon":"☄","cd":18.0,"radius":120.0,"dmg":75.0,"targeted":true},
@@ -148,6 +150,7 @@ func _ready() -> void:
 	font = ThemeDB.fallback_font
 	mapdef = Defs.MAPS[map_id]
 	decor_seed = abs(hash(map_id))
+	_load_sprites()
 	_build_path()
 	gold = int(mapdef["start_gold"]) + int(GameData.perks.get("start_gold_bonus", 0))
 	start_life = int(mapdef["start_life"]) + int(GameData.perks.get("start_life_bonus", 0))
@@ -155,6 +158,16 @@ func _ready() -> void:
 	_build_hud()
 	_refresh_hud()
 	set_process_unhandled_input(true)
+
+func _load_sprites() -> void:
+	for tid in Defs.TOWERS:
+		var p := "res://sprites/towers/%s.png" % tid
+		if ResourceLoader.exists(p):
+			tower_tex[tid] = load(p)
+	for eid in Defs.ENEMIES:
+		var p := "res://sprites/enemies/%s.png" % eid
+		if ResourceLoader.exists(p):
+			enemy_tex[eid] = load(p)
 
 func _cell_center(c: int, r: int) -> Vector2:
 	return Vector2(c * TILE + TILE / 2.0, r * TILE + TILE / 2.0)
@@ -544,6 +557,14 @@ func _draw_tower(t: Tower) -> void:
 func _draw_tower_glyph(pos: Vector2, tid: String, level: int, alpha: float) -> void:
 	var d: Dictionary = Defs.TOWERS[tid]
 	var col: Color = d["color"]
+	if tower_tex.has(tid):
+		draw_circle(pos + Vector2(0, 20), 20, Color(0, 0, 0, 0.22 * alpha))
+		var sz := 58.0
+		draw_texture_rect(tower_tex[tid], Rect2(pos.x - sz / 2, pos.y - sz / 2 - 6, sz, sz), false, Color(1, 1, 1, alpha))
+		if level > 1:
+			for i in (level - 1):
+				draw_circle(pos + Vector2(-8 + i * 8, 16), 2.6, Color("e8b64a"))
+		return
 	var stone := Color(0.19, 0.15, 0.11, alpha)
 	# yer gölgesi
 	draw_circle(pos + Vector2(0, 20), 22, Color(0, 0, 0, 0.22 * alpha))
@@ -582,13 +603,18 @@ func _draw_enemy(e: Enemy) -> void:
 		draw_arc(e.pos, e.r + 4, 0, TAU, 24, Color(0.35, 0.7, 0.9, 0.8), 2.5)
 	if e.poison_t > 0.0:
 		draw_arc(e.pos, e.r + 7, 0, TAU, 20, Color(0.45, 0.85, 0.35, 0.7), 2.0)
-	var body := Color.WHITE if e.hit > 0.0 else e.color
-	draw_circle(e.pos, e.r, body)
-	if e.hit <= 0.0:
-		var dk := body.darkened(0.3)
-		draw_circle(e.pos + Vector2(0, e.r * 0.3), e.r * 0.75, Color(dk.r, dk.g, dk.b, 0.45))
-		draw_circle(e.pos + Vector2(-e.r * 0.3, -e.r * 0.3), e.r * 0.3, Color(1, 1, 1, 0.12))
-	draw_arc(e.pos, e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.5)
+	if enemy_tex.has(e.type):
+		var sz := e.r * 2.6
+		var mod := Color(1, 1, 1, 1) if e.hit <= 0.0 else Color(1.6, 1.6, 1.6, 1)
+		draw_texture_rect(enemy_tex[e.type], Rect2(e.pos.x - sz / 2, e.pos.y - sz / 2, sz, sz), false, mod)
+	else:
+		var body := Color.WHITE if e.hit > 0.0 else e.color
+		draw_circle(e.pos, e.r, body)
+		if e.hit <= 0.0:
+			var dk := body.darkened(0.3)
+			draw_circle(e.pos + Vector2(0, e.r * 0.3), e.r * 0.75, Color(dk.r, dk.g, dk.b, 0.45))
+			draw_circle(e.pos + Vector2(-e.r * 0.3, -e.r * 0.3), e.r * 0.3, Color(1, 1, 1, 0.12))
+		draw_arc(e.pos, e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.5)
 	if e.boss:
 		_label(e.pos + Vector2(0, -e.r - 12), "♛", Color("e8b64a"), 20, true)
 	var w := e.r * 2.0
