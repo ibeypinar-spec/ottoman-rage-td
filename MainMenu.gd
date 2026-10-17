@@ -44,7 +44,7 @@ func _ready() -> void:
 	center.add_child(spacer)
 
 	var play := _button("SEFERE BAŞLA", Color("c0362b"), Color.WHITE)
-	play.pressed.connect(func(): main.goto_game("istanbul"))
+	play.pressed.connect(func(): main.goto_mapselect())
 	center.add_child(play)
 
 	var stars := GameData.map_stars("istanbul")

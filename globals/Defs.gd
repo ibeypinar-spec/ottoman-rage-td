@@ -126,9 +126,12 @@ const WAVES := [
 ]
 
 # ------------------------------------------------------------------ HARİTALAR
+# Kampanya sırası — bir harita (en az 1 yıldızla) biterse sonraki açılır.
+const CAMPAIGN := ["istanbul", "edirne", "filibe", "sofya"]
+
 const MAPS := {
 	"istanbul": {
-		"name": "İstanbul Yolu", "biome": "Şehir",
+		"name": "İstanbul Yolu", "biome": "Şehir", "decor": "city", "diff": 1.0,
 		"start_gold": 160, "start_life": 20,
 		"ground_a": Color("201814"), "ground_b": Color("241b17"),
 		"road_edge": Color("4a3524"), "road": Color("6b4e34"),
@@ -136,6 +139,38 @@ const MAPS := {
 			Vector2i(4,-1), Vector2i(4,2), Vector2i(1,2), Vector2i(1,5),
 			Vector2i(7,5), Vector2i(7,8), Vector2i(2,8), Vector2i(2,11),
 			Vector2i(6,11), Vector2i(6,14), Vector2i(6,16),
+		],
+	},
+	"edirne": {
+		"name": "Edirne Ormanı", "biome": "Orman", "decor": "forest", "diff": 1.18,
+		"start_gold": 170, "start_life": 20,
+		"ground_a": Color("16231a"), "ground_b": Color("1b2c20"),
+		"road_edge": Color("3a3220"), "road": Color("5a4a2c"),
+		"path": [
+			Vector2i(1,-1), Vector2i(1,3), Vector2i(7,3), Vector2i(7,6),
+			Vector2i(2,6), Vector2i(2,9), Vector2i(6,9), Vector2i(6,12),
+			Vector2i(3,12), Vector2i(3,16),
+		],
+	},
+	"filibe": {
+		"name": "Filibe Bataklığı", "biome": "Bataklık", "decor": "swamp", "diff": 1.4,
+		"start_gold": 185, "start_life": 18,
+		"ground_a": Color("16211f"), "ground_b": Color("1a2824"),
+		"road_edge": Color("33332a"), "road": Color("4a4a38"),
+		"path": [
+			Vector2i(4,-1), Vector2i(4,2), Vector2i(7,2), Vector2i(7,5),
+			Vector2i(1,5), Vector2i(1,8), Vector2i(7,8), Vector2i(7,11),
+			Vector2i(1,11), Vector2i(1,14), Vector2i(4,14), Vector2i(4,16),
+		],
+	},
+	"sofya": {
+		"name": "Sofya Ovası", "biome": "Step", "decor": "steppe", "diff": 1.65,
+		"start_gold": 200, "start_life": 18,
+		"ground_a": Color("222017"), "ground_b": Color("2a271b"),
+		"road_edge": Color("4a3f28"), "road": Color("6e5e38"),
+		"path": [
+			Vector2i(2,-1), Vector2i(2,4), Vector2i(6,4), Vector2i(6,8),
+			Vector2i(2,8), Vector2i(2,12), Vector2i(7,12), Vector2i(7,16),
 		],
 	},
 }

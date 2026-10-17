@@ -22,6 +22,12 @@ func damage_mult() -> float:
 func map_stars(map_id: String) -> int:
 	return int(best_stars.get(map_id, 0))
 
+func is_map_unlocked(map_id: String) -> bool:
+	var idx: int = Defs.CAMPAIGN.find(map_id)
+	if idx <= 0:
+		return true
+	return map_stars(Defs.CAMPAIGN[idx - 1]) >= 1
+
 func record_result(map_id: String, stars: int, earned_gold: int) -> void:
 	if stars > map_stars(map_id):
 		best_stars[map_id] = stars

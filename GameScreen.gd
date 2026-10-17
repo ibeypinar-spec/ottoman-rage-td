@@ -115,6 +115,7 @@ var sel_spell: String = ""
 var spell_cd: Dictionary = {"okyagmuru": 0.0, "don": 0.0}
 var mouse_pos: Vector2 = Vector2.ZERO
 var spell_btns: Dictionary = {}
+var decor_seed: int = 0
 
 const SPELLS := {
 	"okyagmuru": {"name":"Ok Yağmuru","icon":"☄","cd":18.0,"radius":120.0,"dmg":75.0,"targeted":true},
@@ -146,6 +147,7 @@ const TILE := Defs.TILE
 func _ready() -> void:
 	font = ThemeDB.fallback_font
 	mapdef = Defs.MAPS[map_id]
+	decor_seed = abs(hash(map_id))
 	_build_path()
 	gold = int(mapdef["start_gold"]) + int(GameData.perks.get("start_gold_bonus", 0))
 	start_life = int(mapdef["start_life"]) + int(GameData.perks.get("start_life_bonus", 0))
@@ -246,7 +248,7 @@ func _sell_val(t: Tower) -> int:
 # ------------------------------------------------- simülasyon
 func _make_enemy(type: String) -> Enemy:
 	var d: Dictionary = Defs.ENEMIES[type]
-	var scale := 1.0 + 0.06 * wave_index
+	var scale := (1.0 + 0.06 * wave_index) * float(mapdef.get("diff", 1.0))
 	var e := Enemy.new()
 	e.type = type; e.name = d["name"]
 	e.max_hp = float(d["hp"]) * scale; e.hp = e.max_hp
@@ -462,6 +464,7 @@ func _draw() -> void:
 			draw_rect(Rect2(c * TILE, r * TILE, TILE, TILE), col, true)
 			if not on_path:
 				draw_rect(Rect2(c * TILE, r * TILE, TILE, TILE), Color(0.91, 0.71, 0.29, 0.05), false, 1.0)
+	_draw_decor()
 	var pts := curve.get_baked_points()
 	draw_polyline(pts, mapdef["road_edge"], TILE * 0.82, true)
 	draw_polyline(pts, mapdef["road"], TILE * 0.62, true)
@@ -501,23 +504,76 @@ func _draw() -> void:
 			var a2: float = clamp(pop.t / 0.9, 0.0, 1.0)
 			_label(pop.pos, pop.text, Color(pop.color.r, pop.color.g, pop.color.b, a2), 20)
 
+func _draw_decor() -> void:
+	var biome: String = mapdef.get("decor", "city")
+	for r in Defs.ROWS:
+		for c in Defs.COLS:
+			if path_keys.has(Vector2i(c, r)): continue
+			var h: int = abs((c * 73856093) ^ (r * 19349663) ^ decor_seed)
+			if h % 4 != 0: continue
+			var cx := c * TILE + TILE / 2.0 + float((h >> 3) % 22 - 11)
+			var cy := r * TILE + TILE / 2.0 + float((h >> 7) % 22 - 11)
+			var v := (h >> 4) % 3
+			match biome:
+				"forest": _decor_tree(Vector2(cx, cy), v)
+				"swamp": _decor_reed(Vector2(cx, cy), v)
+				"steppe": _decor_tuft(Vector2(cx, cy), v)
+				_: _decor_stone(Vector2(cx, cy), v)
+
+func _decor_tree(p: Vector2, v: int) -> void:
+	var s := 10.0 + v * 3.0
+	draw_line(p + Vector2(0, s * 0.5), p + Vector2(0, s * 1.1), Color(0.22, 0.15, 0.09, 0.55), 3.0)
+	draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.7, s * 0.5), p + Vector2(-s * 0.7, s * 0.5)]), Color(0.16, 0.3, 0.17, 0.6))
+
+func _decor_reed(p: Vector2, v: int) -> void:
+	for i in 3:
+		var dx := (i - 1) * 4.0
+		draw_line(p + Vector2(dx, 8), p + Vector2(dx - 2, -8 - v * 2), Color(0.33, 0.45, 0.3, 0.5), 2.0)
+
+func _decor_tuft(p: Vector2, v: int) -> void:
+	for i in 4:
+		var a := -1.0 + i * 0.6
+		draw_line(p, p + Vector2(a * 5, -7 - v), Color(0.42, 0.4, 0.24, 0.45), 1.5)
+
+func _decor_stone(p: Vector2, v: int) -> void:
+	draw_circle(p, 4.0 + v, Color(0.26, 0.22, 0.18, 0.5))
+
 func _draw_tower(t: Tower) -> void:
 	_draw_tower_glyph(t.pos, t.tid, t.level, 1.0)
 
 func _draw_tower_glyph(pos: Vector2, tid: String, level: int, alpha: float) -> void:
 	var d: Dictionary = Defs.TOWERS[tid]
 	var col: Color = d["color"]
-	draw_rect(Rect2(pos.x - 26, pos.y - 26, 52, 52), Color(0.1, 0.07, 0.05, alpha), true)
-	draw_rect(Rect2(pos.x - 26, pos.y - 26, 52, 52), Color(0.23, 0.17, 0.11, alpha), false, 2.5)
-	draw_circle(pos, 18, Color(col.r, col.g, col.b, alpha))
-	_label(pos + Vector2(0, 2), d["glyph"], Color(0.09, 0.05, 0.03, alpha), 26, true)
+	var stone := Color(0.19, 0.15, 0.11, alpha)
+	# yer gölgesi
+	draw_circle(pos + Vector2(0, 20), 22, Color(0, 0, 0, 0.22 * alpha))
+	# burç gövdesi (trapez)
+	draw_colored_polygon(PackedVector2Array([
+		pos + Vector2(-19, -16), pos + Vector2(19, -16),
+		pos + Vector2(23, 22), pos + Vector2(-23, 22)]), stone)
+	# mazgallar
+	for i in 3:
+		draw_rect(Rect2(pos.x - 18 + i * 14, pos.y - 24, 9, 9), stone, true)
+	draw_line(pos + Vector2(-23, 22), pos + Vector2(23, 22), Color(0.1, 0.08, 0.05, alpha), 2.0)
+	# amblem diski
+	draw_circle(pos, 14, Color(col.r, col.g, col.b, alpha))
+	draw_arc(pos, 14, 0, TAU, 20, Color(0, 0, 0, 0.3 * alpha), 2.0)
+	_label(pos + Vector2(0, 1), d["glyph"], Color(0.09, 0.05, 0.03, alpha), 22, true)
+	# bayrak
+	draw_line(pos + Vector2(15, -24), pos + Vector2(15, -42), Color(0.3, 0.25, 0.18, alpha), 2.0)
+	draw_colored_polygon(PackedVector2Array([
+		pos + Vector2(15, -42), pos + Vector2(31, -37), pos + Vector2(15, -32)]),
+		Color(col.r, col.g, col.b, alpha))
+	# seviye nişanları
 	if level > 1:
 		for i in (level - 1):
-			draw_circle(pos + Vector2(-9 + i * 9, -32), 3.2, Color("e8b64a"))
+			draw_circle(pos + Vector2(-8 + i * 8, 15), 2.6, Color("e8b64a"))
 
 func _draw_enemy(e: Enemy) -> void:
+	draw_circle(e.pos + Vector2(0, e.r * 0.55), e.r * 0.95, Color(0, 0, 0, 0.2))
 	if e.flying:
-		draw_circle(e.pos + Vector2(0, e.r + 7), e.r * 0.7, Color(0, 0, 0, 0.22))
+		draw_line(e.pos + Vector2(-e.r, -2), e.pos + Vector2(-e.r - 7, -8), Color(0.2, 0.15, 0.25, 0.8), 3.0)
+		draw_line(e.pos + Vector2(e.r, -2), e.pos + Vector2(e.r + 7, -8), Color(0.2, 0.15, 0.25, 0.8), 3.0)
 	if e.armor > 0.0:
 		draw_arc(e.pos, e.r + 2, 0, TAU, 20, Color(0.74, 0.78, 0.84, 0.7), 2.0)
 	if e.stun_t > 0.0:
@@ -528,6 +584,10 @@ func _draw_enemy(e: Enemy) -> void:
 		draw_arc(e.pos, e.r + 7, 0, TAU, 20, Color(0.45, 0.85, 0.35, 0.7), 2.0)
 	var body := Color.WHITE if e.hit > 0.0 else e.color
 	draw_circle(e.pos, e.r, body)
+	if e.hit <= 0.0:
+		var dk := body.darkened(0.3)
+		draw_circle(e.pos + Vector2(0, e.r * 0.3), e.r * 0.75, Color(dk.r, dk.g, dk.b, 0.45))
+		draw_circle(e.pos + Vector2(-e.r * 0.3, -e.r * 0.3), e.r * 0.3, Color(1, 1, 1, 0.12))
 	draw_arc(e.pos, e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.5)
 	if e.boss:
 		_label(e.pos + Vector2(0, -e.r - 12), "♛", Color("e8b64a"), 20, true)
