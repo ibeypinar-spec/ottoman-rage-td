@@ -1,0 +1,30 @@
+; Ottoman Rage: Kuşatma — Godot 4.3 project
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="Ottoman Rage: Kuşatma"
+config/description="Vlad Dracul'un ordularını Osmanlı kuleleriyle durdur."
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Defs="*res://globals/Defs.gd"
+GameData="*res://globals/GameData.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation="portrait"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true

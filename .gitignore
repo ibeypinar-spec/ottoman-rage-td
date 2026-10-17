@@ -1,0 +1,10 @@
+# Godot 4 import cache / generated
+.godot/
+# Export çıktıları
+/build/
+/export/
+*.apk
+*.aab
+# OS
+Thumbs.db
+.DS_Store
