@@ -608,13 +608,27 @@ func _draw_enemy(e: Enemy) -> void:
 		var mod := Color(1, 1, 1, 1) if e.hit <= 0.0 else Color(1.6, 1.6, 1.6, 1)
 		draw_texture_rect(enemy_tex[e.type], Rect2(e.pos.x - sz / 2, e.pos.y - sz / 2, sz, sz), false, mod)
 	else:
-		var body := Color.WHITE if e.hit > 0.0 else e.color
-		draw_circle(e.pos, e.r, body)
-		if e.hit <= 0.0:
-			var dk := body.darkened(0.3)
-			draw_circle(e.pos + Vector2(0, e.r * 0.3), e.r * 0.75, Color(dk.r, dk.g, dk.b, 0.45))
-			draw_circle(e.pos + Vector2(-e.r * 0.3, -e.r * 0.3), e.r * 0.3, Color(1, 1, 1, 0.12))
-		draw_arc(e.pos, e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.5)
+		var flash := e.hit > 0.0
+		var body := Color.WHITE if flash else e.color
+		var bd := body.darkened(0.38)
+		# pelerin / gövde
+		draw_circle(e.pos + Vector2(0, e.r * 0.28), e.r, body)
+		if not flash:
+			draw_circle(e.pos + Vector2(0, e.r * 0.62), e.r * 0.72, Color(bd.r, bd.g, bd.b, 0.55))
+		# baş (türüne göre ten)
+		var skin := Color(0.82, 0.66, 0.5)
+		if e.type == "strigoi" or e.type == "hortlak": skin = Color(0.8, 0.82, 0.74)
+		elif e.type == "vlad": skin = Color(0.72, 0.6, 0.58)
+		elif e.type == "yarasa": skin = Color(0.5, 0.42, 0.6)
+		if flash: skin = Color.WHITE
+		draw_circle(e.pos + Vector2(0, -e.r * 0.45), e.r * 0.46, skin)
+		# kukuleta / başlık
+		draw_arc(e.pos + Vector2(0, -e.r * 0.45), e.r * 0.52, PI, TAU, 12, bd, 3.0)
+		# ışık vurgusu
+		if not flash:
+			draw_circle(e.pos + Vector2(-e.r * 0.33, -e.r * 0.05), e.r * 0.2, Color(1, 1, 1, 0.13))
+		# dış hat
+		draw_arc(e.pos + Vector2(0, e.r * 0.28), e.r, 0, TAU, 28, Color(0, 0, 0, 0.5), 2.0)
 	if e.boss:
 		_label(e.pos + Vector2(0, -e.r - 12), "♛", Color("e8b64a"), 20, true)
 	var w := e.r * 2.0
