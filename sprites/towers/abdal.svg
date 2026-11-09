@@ -1,0 +1,19 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- staff with leaf -->
+  <line x1="76" y1="14" x2="70" y2="96" stroke="#6b4a2a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M76 16 Q88 10 90 20 Q80 24 76 16 Z" fill="#5fae5a" stroke="#2a1712" stroke-width="2"/>
+  <circle cx="76" cy="14" r="4" fill="#e8b64a" stroke="#2a1712" stroke-width="1.5"/>
+  <!-- robe -->
+  <path d="M26 97 Q24 60 40 50 L60 50 Q76 60 74 97 Z" fill="#a877d6" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 52 L50 97" stroke="#7c4fab" stroke-width="2"/>
+  <!-- prayer beads -->
+  <path d="M34 60 Q50 72 60 58" fill="none" stroke="#e8b64a" stroke-width="2.5" stroke-dasharray="1.5 3"/>
+  <!-- head -->
+  <circle cx="50" cy="41" r="15" fill="#e9c6a0" stroke="#2a1712" stroke-width="3"/>
+  <!-- tall dervish hat (sikke) -->
+  <path d="M40 34 L43 8 Q50 4 57 8 L60 34 Q50 29 40 34 Z" fill="#c9a86a" stroke="#2a1712" stroke-width="3"/>
+  <path d="M40 35 Q50 30 60 35 L60 30 Q50 25 40 30 Z" fill="#8a6a3a" stroke="#2a1712" stroke-width="2"/>
+  <!-- calm eyes -->
+  <path d="M44 41 h4 M52 41 h4" stroke="#2a1712" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40 56 Q36 66 40 82" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+</svg>

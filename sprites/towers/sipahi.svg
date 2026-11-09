@@ -1,0 +1,21 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- bow behind -->
+  <path d="M73 18 Q95 50 73 82" fill="none" stroke="#7a5428" stroke-width="5" stroke-linecap="round"/>
+  <path d="M73 18 L73 82" stroke="#e8d08a" stroke-width="1.5"/>
+  <!-- robe -->
+  <path d="M26 97 Q24 60 40 50 L60 50 Q76 60 74 97 Z" fill="#63b85a" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 52 L50 97" stroke="#3f7f38" stroke-width="2"/>
+  <!-- sash -->
+  <path d="M28 72 Q50 82 72 72" fill="none" stroke="#e8b64a" stroke-width="6" stroke-linecap="round"/>
+  <!-- head -->
+  <circle cx="50" cy="39" r="15" fill="#e9c6a0" stroke="#2a1712" stroke-width="3"/>
+  <!-- helmet / turban -->
+  <path d="M34 36 Q38 18 50 18 Q62 18 66 36 Q50 29 34 36 Z" fill="#3f7f38" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 18 L50 10" stroke="#2a1712" stroke-width="2"/>
+  <circle cx="50" cy="9" r="3.5" fill="#e8b64a" stroke="#2a1712" stroke-width="1.5"/>
+  <!-- arrow across -->
+  <line x1="30" y1="60" x2="80" y2="47" stroke="#caa06a" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M80 47 l-7 -3 l1.5 7 Z" fill="#ede0c0" stroke="#2a1712" stroke-width="1"/>
+  <!-- highlight -->
+  <path d="M40 55 Q36 64 40 80" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+</svg>

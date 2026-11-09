@@ -1,0 +1,17 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- shield behind left -->
+  <ellipse cx="26" cy="64" rx="13" ry="17" fill="#8a9099" stroke="#2a1712" stroke-width="3"/>
+  <circle cx="26" cy="64" r="4" fill="#e8b64a" stroke="#2a1712" stroke-width="1.5"/>
+  <!-- armored body -->
+  <path d="M30 97 Q28 58 42 50 L58 50 Q72 58 70 97 Z" fill="#7d8694" stroke="#2a1712" stroke-width="3"/>
+  <!-- plates -->
+  <path d="M34 66 Q50 72 66 66 M34 78 Q50 84 66 78" fill="none" stroke="#565d69" stroke-width="3"/>
+  <path d="M50 52 L50 97" stroke="#565d69" stroke-width="2"/>
+  <!-- pauldrons -->
+  <ellipse cx="38" cy="54" rx="9" ry="6" fill="#9aa1ad" stroke="#2a1712" stroke-width="2.5"/>
+  <ellipse cx="62" cy="54" rx="9" ry="6" fill="#9aa1ad" stroke="#2a1712" stroke-width="2.5"/>
+  <!-- closed helmet -->
+  <path d="M36 44 Q36 20 50 18 Q64 20 64 44 Q50 48 36 44 Z" fill="#b8bcc6" stroke="#2a1712" stroke-width="3"/>
+  <rect x="42" y="34" width="16" height="4" rx="2" fill="#2a1712"/>
+  <path d="M50 18 L50 10 M46 8 L54 8" stroke="#2a1712" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

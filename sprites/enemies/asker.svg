@@ -1,0 +1,17 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- spear -->
+  <line x1="78" y1="8" x2="70" y2="96" stroke="#6b4a2a" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M78 8 l-4 10 l8 0 Z" fill="#cfd4da" stroke="#2a1712" stroke-width="1.5"/>
+  <!-- tunic -->
+  <path d="M28 97 Q26 60 40 52 L60 52 Q74 60 72 97 Z" fill="#9199a6" stroke="#2a1712" stroke-width="3"/>
+  <!-- chest strap -->
+  <path d="M38 54 L58 92" stroke="#5e6472" stroke-width="5"/>
+  <!-- head -->
+  <circle cx="50" cy="42" r="15" fill="#d8a878" stroke="#2a1712" stroke-width="3"/>
+  <!-- conical helmet -->
+  <path d="M35 38 Q38 16 50 10 Q62 16 65 38 Q50 31 35 38 Z" fill="#b8bcc6" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 10 L50 4" stroke="#2a1712" stroke-width="2"/>
+  <path d="M35 38 Q50 32 65 38" fill="none" stroke="#5e6472" stroke-width="2"/>
+  <!-- eyes -->
+  <path d="M44 43 h4 M52 43 h4" stroke="#2a1712" stroke-width="2" stroke-linecap="round"/>
+</svg>

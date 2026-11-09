@@ -1,0 +1,21 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- crossed swords behind -->
+  <line x1="20" y1="28" x2="80" y2="80" stroke="#cfd4da" stroke-width="5" stroke-linecap="round"/>
+  <line x1="80" y1="28" x2="20" y2="80" stroke="#cfd4da" stroke-width="5" stroke-linecap="round"/>
+  <line x1="18" y1="26" x2="26" y2="34" stroke="#e8b64a" stroke-width="4" stroke-linecap="round"/>
+  <line x1="82" y1="26" x2="74" y2="34" stroke="#e8b64a" stroke-width="4" stroke-linecap="round"/>
+  <!-- robe -->
+  <path d="M26 97 Q24 60 40 50 L60 50 Q76 60 74 97 Z" fill="#e05a7a" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 52 L50 97" stroke="#a83356" stroke-width="2"/>
+  <!-- fur / leopard sash -->
+  <path d="M28 70 Q50 80 72 70" fill="none" stroke="#caa24a" stroke-width="6" stroke-linecap="round"/>
+  <!-- head -->
+  <circle cx="50" cy="40" r="15" fill="#e9c6a0" stroke="#2a1712" stroke-width="3"/>
+  <!-- wild feathered cap -->
+  <path d="M36 35 Q34 20 50 19 Q66 20 64 35 Q50 29 36 35 Z" fill="#7a3a2a" stroke="#2a1712" stroke-width="3"/>
+  <path d="M50 19 Q46 6 38 2" fill="none" stroke="#e8b64a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M50 19 Q54 6 62 2" fill="none" stroke="#df5a4e" stroke-width="3" stroke-linecap="round"/>
+  <!-- fierce eyes -->
+  <path d="M43 40 l5 2 M57 40 l-5 2" stroke="#2a1712" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40 55 Q36 64 40 80" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
+</svg>

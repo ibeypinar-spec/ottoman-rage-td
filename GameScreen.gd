@@ -161,13 +161,20 @@ func _ready() -> void:
 
 func _load_sprites() -> void:
 	for tid in Defs.TOWERS:
-		var p := "res://sprites/towers/%s.png" % tid
-		if ResourceLoader.exists(p):
-			tower_tex[tid] = load(p)
+		var t := _find_sprite("res://sprites/towers/%s" % tid)
+		if t:
+			tower_tex[tid] = t
 	for eid in Defs.ENEMIES:
-		var p := "res://sprites/enemies/%s.png" % eid
+		var t := _find_sprite("res://sprites/enemies/%s" % eid)
+		if t:
+			enemy_tex[eid] = t
+
+func _find_sprite(base: String) -> Texture2D:
+	for ext in [".png", ".svg"]:
+		var p: String = base + ext
 		if ResourceLoader.exists(p):
-			enemy_tex[eid] = load(p)
+			return load(p)
+	return null
 
 func _cell_center(c: int, r: int) -> Vector2:
 	return Vector2(c * TILE + TILE / 2.0, r * TILE + TILE / 2.0)

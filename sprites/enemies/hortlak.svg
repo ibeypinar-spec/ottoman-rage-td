@@ -1,0 +1,15 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- tattered shroud -->
+  <path d="M26 97 L30 92 L36 97 L42 90 L50 97 L58 90 L64 97 L70 92 L74 97 Q76 58 60 50 L40 50 Q24 58 26 97 Z" fill="#8aa06a" stroke="#223018" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M40 54 Q50 62 60 54 L56 86 Q50 82 44 86 Z" fill="#5f7347" stroke="#223018" stroke-width="2"/>
+  <!-- bony hand -->
+  <path d="M70 60 l8 -6 M74 58 l1 6" stroke="#d8d8c0" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- gaunt head -->
+  <ellipse cx="50" cy="40" rx="13" ry="15" fill="#c6cdae" stroke="#223018" stroke-width="3"/>
+  <!-- hood -->
+  <path d="M34 38 Q34 20 50 18 Q66 20 66 38 Q58 30 50 30 Q42 30 34 38 Z" fill="#5f7347" stroke="#223018" stroke-width="2.5"/>
+  <!-- hollow glowing eyes -->
+  <circle cx="45" cy="40" r="3" fill="#aef06a"/>
+  <circle cx="55" cy="40" r="3" fill="#aef06a"/>
+  <path d="M45 49 Q50 46 55 49" fill="none" stroke="#223018" stroke-width="2" stroke-linecap="round"/>
+</svg>

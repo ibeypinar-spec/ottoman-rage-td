@@ -1,0 +1,14 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- wings -->
+  <path d="M50 50 Q22 30 6 42 Q18 46 14 56 Q26 52 24 62 Q36 56 50 60 Z" fill="#5a4668" stroke="#2a1420" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M50 50 Q78 30 94 42 Q82 46 86 56 Q74 52 76 62 Q64 56 50 60 Z" fill="#5a4668" stroke="#2a1420" stroke-width="3" stroke-linejoin="round"/>
+  <!-- body -->
+  <ellipse cx="50" cy="54" rx="12" ry="15" fill="#6a4f80" stroke="#2a1420" stroke-width="3"/>
+  <!-- ears -->
+  <path d="M43 42 l-3 -12 l8 7 Z" fill="#6a4f80" stroke="#2a1420" stroke-width="2"/>
+  <path d="M57 42 l3 -12 l-8 7 Z" fill="#6a4f80" stroke="#2a1420" stroke-width="2"/>
+  <!-- eyes + fangs -->
+  <circle cx="45" cy="50" r="2.6" fill="#e8b64a"/>
+  <circle cx="55" cy="50" r="2.6" fill="#e8b64a"/>
+  <path d="M46 58 l1.5 4 l1.5 -4 M51 58 l1.5 4 l1.5 -4" fill="#ffffff" stroke="#2a1420" stroke-width="0.8"/>
+</svg>

@@ -1,0 +1,16 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- cloak -->
+  <path d="M22 97 Q26 56 40 50 L60 50 Q74 56 78 97 Q50 88 22 97 Z" fill="#5a4668" stroke="#2a1420" stroke-width="3"/>
+  <!-- inner body -->
+  <path d="M38 52 Q50 60 62 52 L58 90 Q50 86 42 90 Z" fill="#caa6e2" stroke="#2a1420" stroke-width="2"/>
+  <!-- head -->
+  <circle cx="50" cy="40" r="15" fill="#e6dcee" stroke="#2a1420" stroke-width="3"/>
+  <!-- slick hair / hood peak -->
+  <path d="M35 38 Q36 22 50 22 Q64 22 65 38 Q58 32 50 32 Q42 32 35 38 Z" fill="#2a1f36" stroke="#2a1420" stroke-width="2"/>
+  <path d="M50 22 L50 14 Q54 16 52 22" fill="#2a1f36"/>
+  <!-- red eyes -->
+  <circle cx="45" cy="41" r="2.4" fill="#d8323a"/>
+  <circle cx="55" cy="41" r="2.4" fill="#d8323a"/>
+  <!-- fangs -->
+  <path d="M46 48 l1.5 4 l1.5 -4 M52 48 l1.5 4 l1.5 -4" fill="#ffffff" stroke="#2a1420" stroke-width="0.8"/>
+</svg>

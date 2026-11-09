@@ -1,0 +1,17 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- dagger -->
+  <line x1="74" y1="40" x2="86" y2="24" stroke="#cfd4da" stroke-width="4" stroke-linecap="round"/>
+  <line x1="72" y1="42" x2="78" y2="48" stroke="#8a5a2a" stroke-width="4" stroke-linecap="round"/>
+  <!-- tunic -->
+  <path d="M28 97 Q26 60 40 52 L60 52 Q74 60 72 97 Z" fill="#c25b40" stroke="#2a1712" stroke-width="3"/>
+  <path d="M30 72 Q50 80 70 72" fill="none" stroke="#7a3522" stroke-width="5" stroke-linecap="round"/>
+  <!-- head -->
+  <circle cx="50" cy="42" r="15" fill="#d8a878" stroke="#2a1712" stroke-width="3"/>
+  <!-- bandana mask -->
+  <path d="M35 46 Q50 54 65 46 L65 52 Q50 60 35 52 Z" fill="#8a3a2a" stroke="#2a1712" stroke-width="2"/>
+  <!-- head scarf -->
+  <path d="M34 40 Q36 24 50 24 Q64 24 66 40 Q50 32 34 40 Z" fill="#9a3f2a" stroke="#2a1712" stroke-width="3"/>
+  <path d="M64 34 Q74 32 78 40" fill="none" stroke="#9a3f2a" stroke-width="4" stroke-linecap="round"/>
+  <!-- eyes -->
+  <path d="M43 42 l5 1 M57 42 l-5 1" stroke="#2a1712" stroke-width="2" stroke-linecap="round"/>
+</svg>
